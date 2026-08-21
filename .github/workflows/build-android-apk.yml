@@ -1,0 +1,107 @@
+name: Build VideoRip APK
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22.13
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.1'
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 36 tooling
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Verify dependency pins
+        shell: bash
+        run: python3 scripts/verify_dependencies.py
+
+      - name: Resolve deterministic npm lockfile
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f package-lock.json
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          test -s package-lock.json
+
+      - name: Install JavaScript dependencies from lockfile
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --no-audit --no-fund
+
+      - name: Run VideoRip logic tests
+        shell: bash
+        run: npm run test:logic
+
+      - name: Run VideoRip static verification
+        shell: bash
+        run: npm run verify:static
+
+      - name: Run UI/UX compatibility verification
+        shell: bash
+        run: python3 scripts/verify_uiux.py
+
+      - name: Run Expo Doctor
+        shell: bash
+        run: npx expo-doctor
+
+      - name: Generate Android native project
+        shell: bash
+        run: CI=1 npx expo prebuild --platform android --clean
+
+      - name: Restrict APK native architecture to arm64-v8a
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '\nreactNativeArchitectures=arm64-v8a\n' >> android/gradle.properties
+
+      - name: Build installable APK
+        shell: bash
+        working-directory: android
+        run: |
+          set -Eeuo pipefail
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify and stage APK
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          APK='android/app/build/outputs/apk/debug/app-debug.apk'
+          test -s "$APK"
+          mkdir -p dist
+          cp "$APK" 'dist/VideoRip-v2.0.0-arm64.apk'
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose 'dist/VideoRip-v2.0.0-arm64.apk'
+          "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging 'dist/VideoRip-v2.0.0-arm64.apk' | tee dist/badging.txt
+          grep -E "package: name='app\.videorip\.mobile'" dist/badging.txt
+          grep -E "versionName='2\.0\.0'" dist/badging.txt
+          sha256sum 'dist/VideoRip-v2.0.0-arm64.apk' | tee dist/VideoRip-v2.0.0-arm64.apk.sha256
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoRip-v2.0.0-arm64-APK
+          path: |
+            dist/VideoRip-v2.0.0-arm64.apk
+            dist/VideoRip-v2.0.0-arm64.apk.sha256
+            dist/badging.txt
+            package-lock.json
