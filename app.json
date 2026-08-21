@@ -1,0 +1,88 @@
+{
+  "expo": {
+    "name": "VideoRip",
+    "slug": "videorip-mobile",
+    "version": "2.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8FAFC"
+    },
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.videorip.mobile",
+      "infoPlist": {
+        "NSPhotoLibraryAddUsageDescription": "Allow VideoRip to save downloaded media to your Photos library.",
+        "NSPhotoLibraryUsageDescription": "Allow VideoRip to import media you choose from your library."
+      }
+    },
+    "android": {
+      "package": "app.videorip.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/monochrome-icon.png",
+        "backgroundColor": "#0B57D0"
+      },
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "allowBackup": false,
+      "userInterfaceStyle": "light"
+    },
+    "plugins": [
+      "expo-document-picker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow VideoRip to import media you choose."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Allow VideoRip to save downloaded media to your Photos library."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0B57D0",
+          "defaultChannel": "downloads"
+        }
+      ],
+      "expo-screen-orientation",
+      "expo-video",
+      "expo-system-ui",
+      [
+        "expo-sharing",
+        {
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": [
+              "video/*",
+              "audio/*",
+              "text/plain",
+              "application/octet-stream"
+            ],
+            "multipleShareMimeTypes": [
+              "video/*",
+              "audio/*",
+              "application/octet-stream"
+            ]
+          }
+        }
+      ]
+    ],
+    "backgroundColor": "#F8FAFC",
+    "scheme": "videorip"
+  }
+}
